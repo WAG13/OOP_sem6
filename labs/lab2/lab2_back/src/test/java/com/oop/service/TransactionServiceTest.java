@@ -49,7 +49,7 @@ class TransactionServiceTest {
 
         transactionService.create(amount, account1, account2);
 
-        assertEquals(BigDecimal.valueOf(100), transaction.getAmount());
+        assertEquals(BigDecimal.valueOf(0), transaction.getAmount());
         assertEquals(transaction.getId(), transaction.getId());
         assertEquals(account1, transaction.getFromAccount());
         assertEquals(account2, transaction.getToAccount());
