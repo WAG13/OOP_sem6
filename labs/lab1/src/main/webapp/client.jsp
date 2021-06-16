@@ -19,8 +19,8 @@
         <!-- ------------------------------------------------------------------------ -->
     </div>
     <hr>
-
-       <form method="post" action="client" id="payForm">
+       <div class="form">
+        <form method="post" action="client" id="payForm">
            <h3>Make payment</h3>
             Card:
             <select name="card">
@@ -34,10 +34,11 @@
             <input type="text" id="info" name="info" /><br>
             <input type="hidden" name="command" id="commandPay"/>
 
-            <input type="submit" id="submitPay" name="submit" value="Add payment" onclick="setCommand('Pay', 'payForm')">
+            <input type="submit" id="submitPay" class="button" name="submit" value="Add payment" onclick="setCommand('Pay', 'payForm')">
         </form>
+       </div>
         <!-- ------------------------------------------------------------------------ -->
-
+        <div class="form">
     <form method="post" action="client" id="topUpForm">
             <h3>Top up an account</h3>
 
@@ -50,10 +51,11 @@
             Money:
             <input type="number" min="0" id="topUpMoney" name="money" /><br>
             <input type="hidden" name="command" id="commandTopUp"/>
-            <input type="submit" id="submitTopUp" name="submit" value="Top up account" onclick="setCommand('TopUp', 'topUpForm')" >
+            <input type="submit" id="submitTopUp" class="button" name="submit" value="Top up account" onclick="setCommand('TopUp', 'topUpForm')" >
         </form>
+        </div>
         <!-- ------------------------------------------------------------------------ -->
-
+        <div class="form">
     <form method="post" action="client" id="blockForm">
             <h3>Block cards</h3>
             Card:
@@ -64,8 +66,9 @@
             </select><br>
             <input type="hidden" name="command" id="commandBlock"/>
 
-            <input type="submit" id="submitBlock" name="submit" value="Block" onclick="setCommand('Block', 'blockForm')" >
+            <input type="submit" id="submitBlock" class="button" name="submit" value="Block" onclick="setCommand('Block', 'blockForm')" >
         </form>
+        </div>
         <!-- ------------------------------------------------------------------------ -->
         <script>
             function setCommand(command, formName)

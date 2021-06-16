@@ -14,7 +14,11 @@ public class ConcreteDAO implements DAO {
     private static volatile ConcreteDAO instance;
     private static DataSource dataSource;
     public static boolean isTomcatDB = true;
-    Connection connection;
+
+
+    private ConcreteDAO(){
+        DBConnection();
+    }
 
     public void DBConnection(){
         try {
@@ -29,11 +33,6 @@ public class ConcreteDAO implements DAO {
         }
     }
 
-    private ConcreteDAO(){
-        DBConnection();
-        connection = getConnection();
-    }
-
     public static ConcreteDAO getInstance() {
         if(instance == null){
             synchronized (ConcreteDAO.class){
@@ -45,18 +44,10 @@ public class ConcreteDAO implements DAO {
         return instance;
     }
 
-    private static synchronized Connection getConnection() {
-        try {
-            return (Connection) dataSource.getConnection();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     @Override
     public Bank getBank(User user) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();){
             PreparedStatement preparedStatement =
                     connection.prepareStatement("select * from banks where admins like ?");
             preparedStatement.setString(1, "%" + user.getId() + "%");
@@ -74,10 +65,10 @@ public class ConcreteDAO implements DAO {
                 for(String item : admins){
                     bank.setAdmins(Integer.valueOf(item));
                 }
-
+                cp.releaseConnection(connection);
                 return bank;
             }
-        } catch (SQLException e) {
+        } catch (SQLException | InterruptedException e) {
             e.printStackTrace();
         }
         return null;
@@ -85,7 +76,8 @@ public class ConcreteDAO implements DAO {
 
     @Override
     public User getUser(String login, String password) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();) {
             PreparedStatement preparedStatement =
                     connection.prepareStatement("select * from clients where login=? and password=?");
             preparedStatement.setString(1, login);
@@ -98,39 +90,41 @@ public class ConcreteDAO implements DAO {
                 user.setName(resultSet.getString("name"));
                 user.setLogin(login);
                 user.setPassword(password);
+                cp.releaseConnection(connection);
                 return user;
             }
 
-        } catch (SQLException e) {
+        } catch (SQLException | InterruptedException e) {
             e.printStackTrace();
         }
-
 
         return null;
     }
 
     @Override
     public boolean checkIsUserExists(String login) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();) {
             PreparedStatement preparedStatement =
                     connection.prepareStatement("select * from clients where login=?");
             preparedStatement.setString(1, login);
             ResultSet resultSet = preparedStatement.executeQuery();
+            cp.releaseConnection(connection);
             if (resultSet.next()) {
                 return true;
             }
 
-        } catch (SQLException e) {
+        } catch (SQLException | InterruptedException e) {
             e.printStackTrace();
         }
-
 
         return false;
     }
 
     @Override
     public int registrateUser(User user) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();)  {
 
             PreparedStatement preparedStatement =
                     connection.prepareStatement("insert into clients(name, login, password, isSuperUser)" +
@@ -140,13 +134,12 @@ public class ConcreteDAO implements DAO {
             preparedStatement.setString(3, user.getPassword());
             preparedStatement.executeUpdate();
             ResultSet rs = preparedStatement.getGeneratedKeys();
-
+            cp.releaseConnection(connection);
             if (rs.next()) {
                 return (int)rs.getLong(1);
             }
 
-
-        } catch (SQLException e) {
+        } catch (SQLException  | InterruptedException e) {
             e.printStackTrace();
         }
         return -1;
@@ -154,11 +147,13 @@ public class ConcreteDAO implements DAO {
 
     @Override
     public Card getCard(String cardNum) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();)  {
             PreparedStatement preparedStatement =
                     connection.prepareStatement("select * from cards where cardNumber = ?");
             preparedStatement.setInt(1, Integer.parseInt(cardNum));
             ResultSet resultSet = preparedStatement.executeQuery();
+            cp.releaseConnection(connection);
             if (resultSet.next()) {
                 Card card = new Card();
                 card.setCardNumber(String.valueOf(resultSet.getInt("cardNumber")));
@@ -167,7 +162,7 @@ public class ConcreteDAO implements DAO {
                 card.setAccountId(resultSet.getInt("accId"));
                 return card;
             }
-        } catch (SQLException e) {
+        } catch (SQLException  | InterruptedException e) {
             e.printStackTrace();
         }
         return null;
@@ -175,7 +170,8 @@ public class ConcreteDAO implements DAO {
 
     @Override
     public List<Card> getUsersCards(User user) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();) {
 
             int userId = user.getId();
             PreparedStatement preparedStatement =
@@ -185,6 +181,7 @@ public class ConcreteDAO implements DAO {
             preparedStatement.setInt(1, userId);
             List<Card> cards = new ArrayList<>();
             ResultSet resultSet = preparedStatement.executeQuery();
+            cp.releaseConnection(connection);
             while (resultSet.next()) {
                 Card card = new Card();
                 card.setCardNumber(String.valueOf(resultSet.getInt("cardNumber")));
@@ -194,7 +191,7 @@ public class ConcreteDAO implements DAO {
                 cards.add(card);
             }
             return cards;
-        } catch (SQLException e) {
+        } catch (SQLException  | InterruptedException e) {
             e.printStackTrace();
         }
         return null;
@@ -202,10 +199,12 @@ public class ConcreteDAO implements DAO {
 
     @Override
     public List<Card> getBlockedCards(List<Integer> accounts) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();)  {
             PreparedStatement preparedStatement =
                     connection.prepareStatement("select * from cards join accounts on accId = id where isBlocked = 1;");
             ResultSet resultSet = preparedStatement.executeQuery();
+            cp.releaseConnection(connection);
             List<Card> cards = new ArrayList<>();
             while (resultSet.next()) {
                 Integer accid = resultSet.getInt("accId");
@@ -219,7 +218,7 @@ public class ConcreteDAO implements DAO {
                 }
             }
             return cards;
-        } catch (SQLException e) {
+        } catch (SQLException  | InterruptedException e) {
             e.printStackTrace();
         }
         return null;
@@ -227,13 +226,15 @@ public class ConcreteDAO implements DAO {
 
     @Override
     public List<Payment> getPayments(User user) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();)  {
             int userId = user.getId();
             PreparedStatement preparedStatement =
                     connection.prepareStatement("select * from payments where clientId = ?");
             preparedStatement.setString(1, String.valueOf(userId));
             List<Payment> payments = new ArrayList<>();
             ResultSet resultSet = preparedStatement.executeQuery();
+            cp.releaseConnection(connection);
             while (resultSet.next()) {
                 Payment payment = new Payment();
                 payment.setId(resultSet.getInt("Id"));
@@ -244,7 +245,7 @@ public class ConcreteDAO implements DAO {
                 payments.add(payment);
             }
             return payments;
-        } catch (SQLException e) {
+        } catch (SQLException  | InterruptedException e) {
             e.printStackTrace();
         }
         return null;
@@ -252,7 +253,8 @@ public class ConcreteDAO implements DAO {
 
     @Override
     public int addPayment(Payment payment) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();)  {
 
             PreparedStatement preparedStatement =
                     connection.prepareStatement("insert into payments(money, clientId, cardNumber, info)" +
@@ -263,13 +265,13 @@ public class ConcreteDAO implements DAO {
             preparedStatement.setString(4, payment.getInfo());
             preparedStatement.executeUpdate();
             ResultSet rs = preparedStatement.getGeneratedKeys();
-
+            cp.releaseConnection(connection);
             if (rs.next()) {
                return (int)rs.getLong(1);
             }
 
 
-        } catch (SQLException e) {
+        } catch (SQLException  | InterruptedException e) {
             e.printStackTrace();
         }
         return -1;
@@ -277,12 +279,14 @@ public class ConcreteDAO implements DAO {
 
     @Override
     public Account getAccount(Card card) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();)  {
             int accId = card.getAccountId();
             PreparedStatement preparedStatement =
                     connection.prepareStatement("select * from accounts where id = ?");
             preparedStatement.setInt(1, accId);
             ResultSet resultSet = preparedStatement.executeQuery();
+            cp.releaseConnection(connection);
             if (resultSet.next()) {
                 Account account = new Account();
                 account.setId(resultSet.getInt("Id"));
@@ -290,7 +294,7 @@ public class ConcreteDAO implements DAO {
                 account.setIsBlocked(resultSet.getBoolean("isBlocked"));
                 return account;
             }
-        } catch (SQLException e) {
+        } catch (SQLException | InterruptedException e) {
             e.printStackTrace();
         }
         return null;
@@ -298,7 +302,8 @@ public class ConcreteDAO implements DAO {
 
     @Override
     public List<Account> getAccounts(List<Card> cards) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();)  {
             List<Integer> accIds = new ArrayList<>();
             for(Card item : cards){
                 accIds.add(item.getAccountId());
@@ -311,6 +316,7 @@ public class ConcreteDAO implements DAO {
             PreparedStatement preparedStatement =
                     connection.prepareStatement(sql);
             ResultSet resultSet = preparedStatement.executeQuery();
+            cp.releaseConnection(connection);
             List<Account> accounts = new ArrayList<>();
             while (resultSet.next()) {
                 Account account = new Account();
@@ -320,7 +326,7 @@ public class ConcreteDAO implements DAO {
                 accounts.add(account);
             }
             return accounts;
-        } catch (SQLException e) {
+        } catch (SQLException | InterruptedException e) {
             e.printStackTrace();
         }
         return null;
@@ -328,28 +334,30 @@ public class ConcreteDAO implements DAO {
 
     @Override
     public void updateAccount(Account account) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();)  {
             PreparedStatement preparedStatement =
                     connection.prepareStatement("update accounts set moneyAmount = ? where id = ?;");
             preparedStatement.setInt(1, account.getMoneyAmount());
             preparedStatement.setInt(2, account.getId());
             preparedStatement.executeUpdate();
-
-        } catch (SQLException e) {
+            cp.releaseConnection(connection);
+        } catch (SQLException | InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     @Override
     public void blockAccount(Account account, boolean isBlock) {
-        try {
+        ConnectionPool cp = ConnectionPool.getConnectionPool();
+        try (Connection connection = cp.getConnection();)  {
             PreparedStatement preparedStatement =
                     connection.prepareStatement("update accounts set isBlocked = ? where id = ?;");
             preparedStatement.setInt(1, isBlock?1:0);
             preparedStatement.setInt(2, account.getId());
             preparedStatement.executeUpdate();
-
-        } catch (SQLException e) {
+            cp.releaseConnection(connection);
+        } catch (SQLException | InterruptedException e) {
             e.printStackTrace();
         }
     }

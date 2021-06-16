@@ -10,17 +10,17 @@
 
         <h2>Hello, ${sessionScope.User.name}!</h2>
         <h4>${sessionScope.bankName} bank</h4>
-        <hr>
+        <hr>       <div class="form">
         <form method="post" action="client" id="unblockForm">
             <c:forEach items="${blockedCards}" var="item">
-                Card Number: ${item.cardNumber}
-                <input type="submit"  name="submit" value="Unblock" onclick="unblock(${item.cardNumber})">
-                <br>
+                Card Number: ${item.cardNumber}<br>
+                <input type="submit" class="button"  name="submit" value="Unblock" onclick="unblock(${item.cardNumber})">
+
             </c:forEach>
             <input type="hidden" name="card" id="cardNum"/>
             <input type="hidden" name="command" id="command"/>
 
-        </form>
+        </form></div>
         <script>
             function unblock(cardNumber)
             {
